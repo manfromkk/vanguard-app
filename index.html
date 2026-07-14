@@ -1,403 +1,606 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>The Vanguard — Хроники Наёмника</title>
+<title>The Vanguard</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tiny5&family=PT+Mono&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --obsidian:#0f172a; --gold:#d4af37; --gold-dim:#8a7223;
-    --blood:#991b1b; --ash:#94a3b8; --iron:#e8edf5; --metal:#3b4761;
-  }
-  *{ -webkit-tap-highlight-color:transparent; }
-  body{
-    background: radial-gradient(1200px 600px at 50% -10%, #1b2745 0%, transparent 60%), var(--obsidian);
-    color:var(--ash); font-family:'Inter',sans-serif; min-height:100vh; overscroll-behavior:none;
-  }
-  .display{ font-family:'Cinzel',serif; }
-  .card{
-    background:linear-gradient(160deg, rgba(30,41,66,.72), rgba(15,23,42,.85));
-    border:1px solid var(--metal); border-radius:12px; backdrop-filter:blur(6px);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 8px 24px rgba(0,0,0,.35);
-  }
-  .xp-track{ background:#0a0f1e; border:1px solid var(--metal); border-radius:6px; box-shadow:inset 0 2px 6px rgba(0,0,0,.7); }
-  .xp-fill{
-    background:linear-gradient(90deg, #7a621d, var(--gold) 60%, #f4e08a);
-    box-shadow:0 0 12px rgba(212,175,55,.55); transition:width .8s cubic-bezier(.22,1,.36,1);
-  }
-  .scroll-card{
-    background:linear-gradient(180deg,#171226,#120f1d);
-    border:1px solid #4a3b21; border-left:3px solid var(--gold-dim); border-radius:8px;
-  }
-  .tab-btn{ color:var(--ash); border-top:2px solid transparent; }
-  .tab-btn.active{ color:var(--gold); border-top-color:var(--gold); text-shadow:0 0 12px rgba(212,175,55,.5); }
-  .btn-forge{
-    background:linear-gradient(180deg,#b3922c,#8a7223); color:#0f172a; font-weight:700;
-    border:1px solid #e3c765; border-radius:8px;
-    box-shadow:0 0 16px rgba(212,175,55,.35), inset 0 1px 0 rgba(255,255,255,.35);
-  }
-  .btn-forge:disabled{ opacity:.5; }
-  .btn-forge:active{ transform:scale(.97); }
-  .mentor-card{ border:2px solid var(--metal); border-radius:12px; overflow:hidden; cursor:pointer; transition:border-color .2s, box-shadow .2s; }
-  .mentor-card.selected{ border-color:var(--gold); box-shadow:0 0 18px rgba(212,175,55,.4); }
-  .mentor-card img{ width:100%; height:110px; object-fit:cover; object-position:center 20%; display:block; }
-  .star{ width:16px; height:16px; border-radius:50%; }
-  .star.done{ background:#f4e08a; box-shadow:0 0 10px rgba(212,175,55,.9); }
-  .star.active{ background:#c9a53a; box-shadow:0 0 8px rgba(212,175,55,.6); animation:pulse 1.8s infinite; }
-  .star.locked{ background:#39445e; opacity:.5; }
-  @keyframes pulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
-  input:focus, textarea:focus{ outline:none; border-color:var(--gold-dim); box-shadow:0 0 0 2px rgba(212,175,55,.18); }
-  section, #screen-onboard, #screen-loading{ display:none; }
-  .visible{ display:block !important; }
-  @keyframes fadein{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
-  .fade{ animation:fadein .25s ease; }
-  .spinner{ width:34px; height:34px; border:3px solid var(--metal); border-top-color:var(--gold); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto; }
-  @keyframes spin{ to{transform:rotate(360deg)} }
+/* ============ ТОКЕНЫ ============ */
+:root[data-theme="dark"]{
+  --bg:#14100c; --panel:#221a12; --panel2:#2c2117;
+  --border:#58432a; --ink:#e8dcc4; --dim:#9b8a6e;
+  --gold:#d4af37; --war:#c34141; --thief:#4caf6e; --mage:#4f7fd9;
+  --hp:#c34141; --st:#4caf6e; --mp:#4f7fd9;
+}
+:root[data-theme="light"]{
+  --bg:#e9dfc8; --panel:#f4ecd8; --panel2:#e4d7bc;
+  --border:#8a7250; --ink:#2a2118; --dim:#6d5c42;
+  --gold:#9a7b1a; --war:#a53030; --thief:#2e7d4a; --mage:#2f5fae;
+  --hp:#a53030; --st:#2e7d4a; --mp:#2f5fae;
+}
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; }
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'PT Mono', monospace; font-size:14px; line-height:1.55;
+  min-height:100vh; padding-bottom:76px; overscroll-behavior:none;
+  image-rendering:pixelated;
+}
+/* лёгкие сканлайны для CRT-вайба */
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:9999;
+  background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.07) 2px 4px);
+}
+:root[data-theme="light"] body::after{ background:none; }
+
+.px{ font-family:'Tiny5', 'PT Mono', monospace; letter-spacing:.5px; }
+
+/* пиксельная рамка: ступенчатые углы через box-shadow */
+.pnl{
+  background:var(--panel); margin:6px 4px; padding:14px;
+  box-shadow:
+    0 -4px 0 0 var(--border), 0 4px 0 0 var(--border),
+    -4px 0 0 0 var(--border), 4px 0 0 0 var(--border),
+    0 -4px 0 0 var(--border) inset;
+}
+.pnl2{ background:var(--panel2); }
+
+.pbtn{
+  display:block; width:100%; border:none; cursor:pointer;
+  background:var(--gold); color:#14100c;
+  font-family:'Tiny5',monospace; font-size:18px; letter-spacing:1px;
+  padding:12px; margin:6px 4px; text-transform:uppercase;
+  box-shadow: 0 -4px 0 0 #8a7223, 0 4px 0 0 #8a7223, -4px 0 0 0 #8a7223, 4px 0 0 0 #8a7223, inset 0 -4px 0 0 rgba(0,0,0,.25);
+  width:calc(100% - 8px);
+}
+.pbtn:active{ transform:translateY(2px); box-shadow: 0 -4px 0 0 #8a7223, 0 2px 0 0 #8a7223, -4px 0 0 0 #8a7223, 4px 0 0 0 #8a7223; }
+.pbtn:disabled{ opacity:.45; }
+.pbtn.ghost{ background:var(--panel2); color:var(--ink); box-shadow: 0 -4px 0 0 var(--border), 0 4px 0 0 var(--border), -4px 0 0 0 var(--border), 4px 0 0 0 var(--border); }
+
+textarea, input{
+  width:100%; background:var(--bg); color:var(--ink);
+  border:none; padding:10px; font-family:'PT Mono',monospace; font-size:14px;
+  box-shadow: 0 -3px 0 0 var(--border), 0 3px 0 0 var(--border), -3px 0 0 0 var(--border), 3px 0 0 0 var(--border);
+  resize:none; outline:none; margin:4px 0;
+}
+
+/* ============ HUD-МЕТРЫ ============ */
+#hud{ display:flex; gap:6px; padding:8px 8px 0; }
+.meter{ flex:1; }
+.meter .lbl{ font-family:'Tiny5',monospace; font-size:13px; display:flex; justify-content:space-between; }
+.meter .bar{ height:12px; background:var(--bg); box-shadow:0 0 0 2px var(--border); margin-top:2px; }
+.meter .fill{ height:100%; transition:width .5s steps(8); }
+.m-hp .fill{ background:var(--hp); } .m-st .fill{ background:var(--st); } .m-mp .fill{ background:var(--mp); }
+
+/* ============ ШАПКА ============ */
+header{ text-align:center; padding:10px 8px 2px; }
+header h1{ font-family:'Tiny5',monospace; font-size:26px; margin:0; letter-spacing:3px; color:var(--gold);
+  text-shadow:2px 2px 0 rgba(0,0,0,.5); }
+#topbtns{ position:absolute; top:8px; right:8px; display:flex; gap:6px; }
+.tiny{
+  font-family:'Tiny5',monospace; font-size:14px; background:var(--panel2); color:var(--ink);
+  border:none; padding:5px 8px; cursor:pointer;
+  box-shadow:0 0 0 2px var(--border);
+}
+
+/* ============ ПОРТРЕТ И ДИАЛОГ ============ */
+.portrait{
+  width:72px; height:72px; object-fit:cover; object-position:center 18%;
+  image-rendering:pixelated;
+  box-shadow:0 0 0 3px var(--border), 0 0 0 6px var(--bg), 0 0 0 8px var(--gold);
+}
+.talking{ animation:bob .35s steps(2) infinite; }
+@keyframes bob{ 0%{transform:translateY(0)} 50%{transform:translateY(-3px)} 100%{transform:translateY(0)} }
+.emote{
+  position:absolute; top:-10px; right:-10px; width:26px; height:26px;
+  image-rendering:pixelated;
+}
+.cursor::after{ content:"▌"; animation:blink 1s steps(1) infinite; color:var(--gold); }
+@keyframes blink{ 50%{opacity:0} }
+
+/* ============ СОЗВЕЗДИЯ ============ */
+.constcard{ position:relative; cursor:pointer; }
+.constcard .cname{ font-family:'Tiny5',monospace; font-size:17px; }
+.constcard.war  .cname{ color:var(--war); }  .constcard.war  svg .lit{ fill:var(--war); }
+.constcard.thief .cname{ color:var(--thief);} .constcard.thief svg .lit{ fill:var(--thief); }
+.constcard.mage .cname{ color:var(--mage); } .constcard.mage svg .lit{ fill:var(--mage); }
+svg .starp{ opacity:.25; }
+svg .lit{ filter:drop-shadow(0 0 5px currentColor); }
+.reveal .s1{ animation:pop .4s steps(3) both; }
+.reveal .s2{ animation:pop .4s steps(3) .35s both; }
+.reveal .s3{ animation:pop .4s steps(3) .7s both; }
+.reveal .ln{ stroke-dasharray:80; stroke-dashoffset:80; animation:draw .6s steps(6) .2s forwards; }
+@keyframes pop{ 0%{transform:scale(0)} 70%{transform:scale(1.6)} 100%{transform:scale(1)} }
+@keyframes draw{ to{stroke-dashoffset:0} }
+
+.chip{ display:inline-block; font-family:'Tiny5',monospace; font-size:12px; padding:2px 6px; box-shadow:0 0 0 2px var(--border); margin-right:6px; }
+.chip.war{ color:var(--war);} .chip.thief{ color:var(--thief);} .chip.mage{ color:var(--mage);}
+
+/* ============ НАСТАВНИКИ (онбординг) ============ */
+.mrow{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:0 4px; }
+.mcard{ background:var(--panel); cursor:pointer; text-align:center; padding-bottom:8px;
+  box-shadow:0 0 0 3px var(--border); }
+.mcard img{ width:100%; height:96px; object-fit:cover; object-position:center 15%; display:block; image-rendering:pixelated; }
+.mcard.sel{ box-shadow:0 0 0 3px var(--gold), 0 0 14px rgba(212,175,55,.5); }
+.mcard .mn{ font-family:'Tiny5',monospace; font-size:15px; margin-top:6px; }
+.mcard .mp2{ font-size:11px; color:var(--dim); padding:0 4px; }
+.mcard.war .mn{color:var(--war)} .mcard.thief .mn{color:var(--thief)} .mcard.mage .mn{color:var(--mage)}
+
+/* ============ ЛЕНТА / СВИТКИ ============ */
+.scroll{ background:var(--panel2); padding:10px 12px; margin:8px 4px;
+  box-shadow:-4px 0 0 0 var(--gold), 0 0 0 2px var(--border); position:relative; }
+.scroll .meta{ font-size:11px; color:var(--dim); margin-bottom:4px; }
+
+/* ============ НАВИГАЦИЯ ============ */
+nav{ position:fixed; bottom:0; left:0; right:0; display:grid; grid-template-columns:1fr 1fr 1fr;
+  background:var(--panel); box-shadow:0 -4px 0 0 var(--border); z-index:100; }
+nav button{ background:none; border:none; color:var(--dim); padding:10px 0 12px; cursor:pointer;
+  font-family:'Tiny5',monospace; font-size:14px; }
+nav button.on{ color:var(--gold); }
+
+.hide{ display:none !important; }
+.fade{ animation:fin .25s steps(4); }
+@keyframes fin{ from{opacity:0} to{opacity:1} }
+.spin{ width:26px; height:26px; margin:14px auto; background:var(--gold);
+  animation:sq 1s steps(4) infinite; }
+@keyframes sq{ 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+h3.px{ font-size:16px; color:var(--gold); margin:14px 8px 4px; text-transform:uppercase; }
+.small{ font-size:12px; color:var(--dim); }
+.xpbar{ height:14px; background:var(--bg); box-shadow:0 0 0 2px var(--border); margin-top:4px; }
+.xpbar .f{ height:100%; background:var(--gold); transition:width .6s steps(10); }
+.ach{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.ach .a{ text-align:center; padding:8px 4px; background:var(--panel2); box-shadow:0 0 0 2px var(--border); font-size:11px; }
+.ach .a.lock{ opacity:.35; }
+@media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
 </style>
 </head>
-<body class="pb-20">
+<body>
 
-<header class="px-4 pt-5 pb-3 text-center">
-  <h1 class="display font-black text-xl tracking-[0.25em] text-[var(--iron)]">THE VANGUARD</h1>
-  <p class="text-[11px] tracking-[0.3em] uppercase text-[var(--gold-dim)] mt-1">Хроники Наёмника</p>
+<div id="topbtns">
+  <button class="tiny" id="btn-lang">EN</button>
+  <button class="tiny" id="btn-theme">☀</button>
+</div>
+
+<header>
+  <h1>THE VANGUARD</h1>
 </header>
 
-<main class="px-4 max-w-md mx-auto">
+<div id="hud" class="hide">
+  <div class="meter m-hp"><div class="lbl"><span data-t="hp">ЗДОРОВЬЕ</span><span id="v-hp">100</span></div><div class="bar"><div class="fill" id="f-hp" style="width:100%"></div></div></div>
+  <div class="meter m-st"><div class="lbl"><span data-t="st">СТАМИНА</span><span id="v-st">3</span></div><div class="bar"><div class="fill" id="f-st" style="width:100%"></div></div></div>
+  <div class="meter m-mp"><div class="lbl"><span data-t="mp">МАНА</span><span id="v-mp">10</span></div><div class="bar"><div class="fill" id="f-mp" style="width:100%"></div></div></div>
+</div>
 
+<main>
   <!-- ЗАГРУЗКА -->
-  <div id="screen-loading" class="visible text-center py-16">
-    <div class="spinner"></div>
-    <p class="text-xs mt-4 tracking-wider uppercase">Открываем Архивы Гильдии…</p>
+  <div id="sc-load"><div class="spin"></div><p class="small" style="text-align:center" data-t="loading">Открываем Архивы Гильдии…</p></div>
+
+  <!-- ОНБОРДИНГ ШАГ 1: НАСТАВНИК = ПУТЬ -->
+  <div id="sc-mentor" class="hide">
+    <div class="pnl fade">
+      <p class="px" style="font-size:17px;color:var(--gold)" data-t="ob1_title">ЭЙ, ТЫ. НЕ СПИШЬ?</p>
+      <p data-t="ob1_text">Повозка приехала. Прежде чем Стражник осмотрит твои пожитки — выбери, чьей дорогой пойдёшь. Наставник определяет твой Путь и твои Созвездия.</p>
+    </div>
+    <div class="mrow">
+      <div class="mcard war" data-m="torsten">
+        <img src="./torsten.png" onerror="this.style.display='none'">
+        <div class="mn">ТОРСТЕН</div><div class="mp2" data-t="m_tor">Путь Медведя · масса и сила</div>
+      </div>
+      <div class="mcard thief" data-m="zarrais">
+        <img src="./zarrais.png" onerror="this.style.display='none'">
+        <div class="mn">ЗАР'РАИС</div><div class="mp2" data-t="m_zar">Путь Волка · сушка и бег</div>
+      </div>
+      <div class="mcard mage" data-m="aelendil">
+        <img src="./aelendil.png" onerror="this.style.display='none'">
+        <div class="mn">АЭЛЕНДИЛ</div><div class="mp2" data-t="m_ael">Путь Оленя · здоровье и техника</div>
+      </div>
+    </div>
+    <button class="pbtn" id="btn-mentor-ok" disabled data-t="ob1_btn">Принять судьбу</button>
   </div>
 
-  <!-- ОНБОРДИНГ -->
-  <div id="screen-onboard">
-    <div class="card p-5 fade">
-      <h2 class="display font-bold text-base text-[var(--iron)] tracking-wider mb-2">ЭЙ, ТЫ. НЕ СПИШЬ?</h2>
-      <p class="text-sm leading-relaxed mb-4">Повозка приехала. Расскажи Стражнику: что у тебя в котомке — гантели, турник, резина, зал или голые руки — и чего ты хочешь: стать больше, суше или просто выжить.</p>
-      <textarea id="onboard-input" rows="3" placeholder="Есть гантели и резинки, хочу подсушиться…"
-        class="w-full bg-[#0a0f1e] border border-[var(--metal)] rounded-lg p-3 text-sm text-[var(--iron)] placeholder-[#556] resize-none"></textarea>
-      <button id="onboard-btn" class="btn-forge w-full py-3 mt-3 text-sm tracking-wider uppercase">⚔️ Предстать перед Стражником</button>
-      <div id="onboard-wait" class="hidden text-center mt-4">
-        <div class="spinner"></div>
-        <p class="text-xs mt-3 italic text-[var(--gold-dim)]">Стражник изучает твои пожитки, Жрец читает небо… до минуты.</p>
-      </div>
+  <!-- ОНБОРДИНГ ШАГ 2: КОТОМКА -->
+  <div id="sc-bag" class="hide">
+    <div class="pnl fade">
+      <p class="px" style="font-size:16px;color:var(--gold)" data-t="ob2_title">ЧТО В ТВОЕЙ КОТОМКЕ?</p>
+      <p data-t="ob2_text">Опиши снаряжение простыми словами: гантели, турник, резина, зал — или голые руки.</p>
+      <textarea id="bag-input" rows="3"></textarea>
+      <button class="pbtn" id="btn-bag" data-t="ob2_btn">Предстать перед Стражником</button>
+      <div id="bag-wait" class="hide"><div class="spin"></div><p class="small" style="text-align:center" data-t="ob2_wait">Стражник изучает пожитки, Жрец читает небо…</p></div>
     </div>
-    <div id="onboard-result" class="scroll-card p-4 mt-4 hidden fade">
-      <p class="text-sm text-[var(--iron)] leading-relaxed" id="onboard-text"></p>
-      <button id="onboard-continue" class="btn-forge w-full py-3 mt-4 text-sm tracking-wider uppercase">Войти в Хроники →</button>
+    <div id="bag-result" class="hide">
+      <div class="pnl" style="display:flex;gap:12px;align-items:flex-start">
+        <div style="position:relative;flex-shrink:0"><img class="portrait" id="ob-portrait" src="./torsten.png"><svg class="emote" id="ob-emote" viewBox="0 0 8 8"></svg></div>
+        <p id="ob-text" style="margin:0"></p>
+      </div>
+      <button class="pbtn hide" id="btn-enter" data-t="ob2_enter">Войти в Хроники →</button>
     </div>
   </div>
 
-  <!-- ===== ГЕРОЙ ===== -->
-  <section id="tab-hero" class="space-y-4">
-    <div class="card p-5">
-      <div class="flex items-center gap-4">
-        <div class="relative shrink-0">
-          <div class="w-20 h-20 rounded-full border-2 border-[var(--gold-dim)] bg-[#0a0f1e] flex items-center justify-center text-4xl">⚔️</div>
-          <div class="absolute -bottom-1 -right-1 bg-[var(--blood)] text-[var(--iron)] text-[10px] font-bold px-2 py-0.5 rounded border border-[#c33]" id="lvl-badge">УР. 1</div>
-        </div>
-        <div class="min-w-0">
-          <h2 class="display font-bold text-lg text-[var(--iron)] truncate" id="hero-name">Странник</h2>
-          <p class="text-sm text-[var(--gold)]" id="hero-rank">Болотный Краб</p>
-          <p class="text-xs mt-0.5" id="hero-path"></p>
-        </div>
-      </div>
-      <div class="mt-5">
-        <div class="flex justify-between text-xs mb-1.5">
-          <span class="uppercase tracking-wider">Опыт</span>
-          <span class="text-[var(--iron)] font-semibold"><span id="xp-now">0</span> / <span id="xp-cap">120</span> XP</span>
-        </div>
-        <div class="xp-track h-4 overflow-hidden"><div class="xp-fill h-full" id="xp-bar" style="width:0%"></div></div>
+  <!-- ГЕРОЙ -->
+  <section id="tab-hero" class="hide">
+    <div class="pnl" style="display:flex;gap:12px;align-items:center">
+      <img class="portrait" id="hero-portrait" src="./torsten.png">
+      <div>
+        <div class="px" style="font-size:18px" id="hero-name">—</div>
+        <div class="px" style="color:var(--gold)" id="hero-rank">—</div>
+        <div class="small" id="hero-path">—</div>
       </div>
     </div>
-
-    <div class="card p-4">
-      <h3 class="display font-bold text-sm text-[var(--iron)] tracking-wider mb-3">ВЫБЕРИ НАСТАВНИКА</h3>
-      <div class="grid grid-cols-3 gap-2" id="mentor-grid">
-        <div class="mentor-card" data-mentor="torsten">
-          <img src="./torsten.png" alt="Торстен" onerror="this.outerHTML='<div class=&quot;h-[110px] flex items-center justify-center text-4xl bg-[#0a0f1e]&quot;>🪓</div>'">
-          <div class="p-2 text-center">
-            <p class="text-xs font-semibold text-[var(--iron)]">Торстен</p>
-            <p class="text-[10px]">Сила · база</p>
-          </div>
-        </div>
-        <div class="mentor-card" data-mentor="aelendil">
-          <img src="./aelendil.png" alt="Аэлендил" onerror="this.outerHTML='<div class=&quot;h-[110px] flex items-center justify-center text-4xl bg-[#0a0f1e]&quot;>🧝</div>'">
-          <div class="p-2 text-center">
-            <p class="text-xs font-semibold text-[var(--iron)]">Аэлендил</p>
-            <p class="text-[10px]">Техника · алхимия</p>
-          </div>
-        </div>
-        <div class="mentor-card" data-mentor="zarrais">
-          <img src="./zarrais.png" alt="Зар'Раис" onerror="this.outerHTML='<div class=&quot;h-[110px] flex items-center justify-center text-4xl bg-[#0a0f1e]&quot;>🐈</div>'">
-          <div class="p-2 text-center">
-            <p class="text-xs font-semibold text-[var(--iron)]">Зар'Раис</p>
-            <p class="text-[10px]">Бег · профит</p>
-          </div>
-        </div>
-      </div>
-      <p class="text-[11px] mt-2 italic text-[var(--gold-dim)]" id="mentor-hint">Наставник судит твои подвиги и пишет тебе в Свиток.</p>
+    <div class="pnl">
+      <div class="px" style="display:flex;justify-content:space-between"><span data-t="xp">ОПЫТ</span><span><span id="xp-now">0</span>/<span id="xp-cap">120</span></span></div>
+      <div class="xpbar"><div class="f" id="xp-bar" style="width:0%"></div></div>
+      <div class="small" id="lvl-line" style="margin-top:4px"></div>
+    </div>
+    <h3 class="px" data-t="chron">ХРОНИКА</h3>
+    <div id="history"></div>
+    <h3 class="px" data-t="achs">ДОСТИЖЕНИЯ</h3>
+    <div class="pnl"><div class="ach" id="ach-grid"></div></div>
+    <h3 class="px" data-t="guild">КАЗНА ГИЛЬДИИ</h3>
+    <div class="pnl pnl2">
+      <p class="px" style="color:var(--gold);font-size:15px" data-t="promo_t">СТРАЖНИК КРЕПОСТИ</p>
+      <p class="small" data-t="promo_d">Втрое больше маны, шесть квестов в день, смена наставника. Скоро — за Telegram Stars.</p>
     </div>
   </section>
 
-  <!-- ===== НЕБОСВОД ===== -->
-  <section id="tab-sky" class="space-y-4">
-    <div class="card p-4">
-      <div class="flex justify-between items-baseline mb-1">
-        <h3 class="display font-bold text-base text-[var(--iron)] tracking-wider">НЕБОСВОД</h3>
-        <span class="text-xs text-[var(--gold)]" id="stars-count">★ 0</span>
-      </div>
-      <p class="text-[11px] italic text-[var(--gold-dim)] mb-3">Тусклые звёзды скрыты туманом войны. Заверши квесты — и небо вспыхнет.</p>
-      <div id="sky-list" class="space-y-4"></div>
-    </div>
-    <h3 class="display font-bold text-sm text-[var(--iron)] tracking-wider px-1">АКТИВНЫЕ КВЕСТЫ</h3>
-    <div id="quest-list" class="space-y-3"></div>
+  <!-- НЕБОСВОД -->
+  <section id="tab-sky" class="hide">
+    <h3 class="px" data-t="sky">НЕБОСВОД</h3>
+    <p class="small" style="margin:0 8px" data-t="sky_hint">Коснись созвездия — и небо ответит.</p>
+    <div id="sky-list"></div>
+    <h3 class="px" data-t="quests">АКТИВНЫЕ КВЕСТЫ</h3>
+    <div id="quest-list"></div>
   </section>
 
-  <!-- ===== ПРИВАЛ ===== -->
-  <section id="tab-camp" class="space-y-4">
-    <div class="card p-4">
-      <h3 class="display font-bold text-base text-[var(--iron)] tracking-wider mb-1">ЗАПИСАТЬ ПОДВИГ</h3>
-      <p class="text-xs mb-3">Опиши битву или трапезу простыми словами — Наставник рассудит.</p>
-      <textarea id="log-input" rows="3" placeholder="Отжался 3 по 15, съел творог и гречку с курицей…"
-        class="w-full bg-[#0a0f1e] border border-[var(--metal)] rounded-lg p-3 text-sm text-[var(--iron)] placeholder-[#556] resize-none"></textarea>
-      <button id="log-btn" class="btn-forge w-full py-3 mt-3 text-sm tracking-wider uppercase">⚔️ Отправить в Архивы Гильдии</button>
-      <div id="log-wait" class="hidden text-center mt-4">
-        <div class="spinner"></div>
-        <p class="text-xs mt-3 italic text-[var(--gold-dim)]">Наставник вершит суд… до минуты.</p>
-      </div>
+  <!-- ПРИВАЛ -->
+  <section id="tab-camp" class="hide">
+    <div class="pnl">
+      <p class="px" style="font-size:16px;color:var(--gold)" data-t="camp_t">ЗАПИСАТЬ ПОДВИГ</p>
+      <p class="small" data-t="camp_d">Опиши битву или трапезу — Наставник рассудит. Каждый суд стоит 1 ману.</p>
+      <textarea id="log-input" rows="3"></textarea>
+      <button class="pbtn" id="btn-log" data-t="camp_btn">Отправить в Архивы</button>
+      <div id="log-wait" class="hide"><div class="spin"></div></div>
     </div>
-    <h3 class="display font-bold text-sm text-[var(--iron)] tracking-wider px-1">СЛОВО НАСТАВНИКА</h3>
-    <div id="mentor-feed" class="space-y-3">
-      <p class="text-xs italic px-1" id="feed-empty">Свиток пока пуст. Соверши первый подвиг.</p>
+    <div id="live-reply" class="pnl hide" style="display:flex;gap:12px;align-items:flex-start">
+      <div style="position:relative;flex-shrink:0"><img class="portrait" id="live-portrait" src="./torsten.png"><svg class="emote" id="live-emote" viewBox="0 0 8 8"></svg></div>
+      <p id="live-text" style="margin:0"></p>
     </div>
+    <h3 class="px" data-t="word">СЛОВО НАСТАВНИКА</h3>
+    <div id="feed"><p class="small" style="margin:0 8px" id="feed-empty" data-t="feed_empty">Свиток пуст. Соверши первый подвиг.</p></div>
   </section>
 </main>
 
-<nav id="bottom-nav" class="fixed bottom-0 inset-x-0 bg-[#0a0f1ee6] backdrop-blur border-t border-[var(--metal)] hidden">
-  <div class="max-w-md mx-auto grid grid-cols-3">
-    <button class="tab-btn active py-3 text-xs uppercase tracking-wider" data-tab="tab-hero">🛡<br>Герой</button>
-    <button class="tab-btn py-3 text-xs uppercase tracking-wider" data-tab="tab-sky">✨<br>Небосвод</button>
-    <button class="tab-btn py-3 text-xs uppercase tracking-wider" data-tab="tab-camp">🔥<br>Привал</button>
-  </div>
+<nav id="nav" class="hide">
+  <button data-tab="tab-hero" class="on" data-t="n_hero">ГЕРОЙ</button>
+  <button data-tab="tab-sky" data-t="n_sky">НЕБОСВОД</button>
+  <button data-tab="tab-camp" data-t="n_camp">ПРИВАЛ</button>
 </nav>
 
 <script>
-// ============================================================
-// НАСТРОЙКИ — ВСТАВЬ СВОИ ДВА ЗНАЧЕНИЯ:
-// SUPABASE_URL — как в .env
-// SUPABASE_ANON_KEY — Supabase -> Settings -> API Keys -> anon / publishable
-// (НЕ service_role! anon — публичный ключ, его можно светить)
-// ============================================================
+// ================== НАСТРОЙКИ (ВСТАВЬ СВОИ) ==================
 const SUPABASE_URL = 'https://vbikkprigimjgixldouk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaWtrcHJpZ2ltamdpeGxkb3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NTQxNDcsImV4cCI6MjA5OTEzMDE0N30.k4bTJqffxWoGBXG23YaaJb7Xw8aKo0MSG8vRfnCVe4U';
+// =============================================================
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const tg = window.Telegram?.WebApp;
 tg?.ready(); tg?.expand();
-tg?.setHeaderColor('#0f172a'); tg?.setBackgroundColor('#0f172a');
-
-// id юзера: из Telegram, либо ?uid=123 для теста в обычном браузере
 const TG_USER = tg?.initDataUnsafe?.user;
 const UID = TG_USER?.id || Number(new URLSearchParams(location.search).get('uid')) || null;
 
-const XP_FOR = (lvl) => Math.ceil(lvl * 100 * 1.2);
-const RANKS = [[1,'Болотный Краб'],[5,'Помойная Крыса'],[10,'Хлипкий Драугр'],[15,'Бандит с Тракта'],[25,'Наёмник'],[40,'Обсидиановый Воин'],[50,'Змееборец']];
-const rankFor = (lvl) => [...RANKS].reverse().find(([m]) => lvl >= m)[1];
-const PATHS = { path_of_bear:'🐻 Путь Медведя · Масса', path_of_wolf:'🐺 Путь Волка · Сушка', path_of_stag:'🦌 Путь Оленя · Тонус' };
+// ---------- i18n ----------
+let LANG = localStorage_get('vg_lang') || 'ru';
+const T = {
+ru:{ hp:'ЗДОРОВЬЕ', st:'СТАМИНА', mp:'МАНА', loading:'Открываем Архивы Гильдии…',
+ob1_title:'ЭЙ, ТЫ. НЕ СПИШЬ?', ob1_text:'Повозка приехала. Прежде чем Стражник осмотрит твои пожитки — выбери, чьей дорогой пойдёшь. Наставник определяет твой Путь и твои Созвездия.', ob1_btn:'Принять судьбу',
+m_tor:'Путь Медведя · масса и сила', m_zar:'Путь Волка · сушка и бег', m_ael:'Путь Оленя · здоровье и техника',
+ob2_title:'ЧТО В ТВОЕЙ КОТОМКЕ?', ob2_text:'Опиши снаряжение простыми словами: гантели, турник, резина, зал — или голые руки.', ob2_btn:'Предстать перед Стражником', ob2_wait:'Стражник изучает пожитки, Жрец читает небо…', ob2_enter:'Войти в Хроники →',
+xp:'ОПЫТ', chron:'ХРОНИКА', achs:'ДОСТИЖЕНИЯ', guild:'КАЗНА ГИЛЬДИИ',
+promo_t:'СТРАЖНИК КРЕПОСТИ', promo_d:'Втрое больше маны, шесть квестов в день, смена наставника. Скоро — за Telegram Stars.',
+sky:'НЕБОСВОД', sky_hint:'Коснись созвездия — и небо ответит.', quests:'АКТИВНЫЕ КВЕСТЫ',
+camp_t:'ЗАПИСАТЬ ПОДВИГ', camp_d:'Опиши битву или трапезу — Наставник рассудит. Каждый суд стоит 1 ману.', camp_btn:'Отправить в Архивы', word:'СЛОВО НАСТАВНИКА', feed_empty:'Свиток пуст. Соверши первый подвиг.',
+n_hero:'ГЕРОЙ', n_sky:'НЕБОСВОД', n_camp:'ПРИВАЛ',
+lvl:'УР.', to_next:'до следующего ранга', mana_out:'Мана иссякла. Вернётся с полуночью.',
+paths:{path_of_bear:'Путь Медведя',path_of_wolf:'Путь Волка',path_of_stag:'Путь Оленя'},
+ranks:['Болотный Краб','Помойная Крыса','Хлипкий Драугр','Бандит с Тракта','Наёмник','Обсидиановый Воин','Змееборец'] },
+en:{ hp:'HEALTH', st:'STAMINA', mp:'MANA', loading:'Opening the Guild Archives…',
+ob1_title:'HEY, YOU. AWAKE?', ob1_text:'The cart has arrived. Before the Guard inspects your rags — choose whose road you walk. Your Mentor sets your Path and your Constellations.', ob1_btn:'Accept your fate',
+m_tor:'Way of the Bear · mass & strength', m_zar:'Way of the Wolf · cutting & cardio', m_ael:'Way of the Stag · health & form',
+ob2_title:'WHAT IS IN YOUR SATCHEL?', ob2_text:'Describe your gear in plain words: dumbbells, pull-up bar, bands, gym — or bare hands.', ob2_btn:'Face the Guard', ob2_wait:'The Guard inspects your gear, the Priest reads the sky…', ob2_enter:'Enter the Chronicles →',
+xp:'XP', chron:'CHRONICLE', achs:'ACHIEVEMENTS', guild:'GUILD TREASURY',
+promo_t:'FORTRESS GUARD', promo_d:'Triple mana, six quests a day, mentor swap. Coming soon for Telegram Stars.',
+sky:'THE SKYWEB', sky_hint:'Touch a constellation — the sky will answer.', quests:'ACTIVE QUESTS',
+camp_t:'LOG A DEED', camp_d:'Describe a battle or a meal — your Mentor will judge. Each judgement costs 1 mana.', camp_btn:'Send to the Archives', word:'MENTOR\'S WORD', feed_empty:'The scroll is empty. Perform your first deed.',
+n_hero:'HERO', n_sky:'SKYWEB', n_camp:'CAMP',
+lvl:'LVL', to_next:'to next rank', mana_out:'Mana is spent. It returns at midnight.',
+paths:{path_of_bear:'Way of the Bear',path_of_wolf:'Way of the Wolf',path_of_stag:'Way of the Stag'},
+ranks:['Mud Crab','Gutter Rat','Feeble Draugr','Road Bandit','Mercenary','Obsidian Warrior','Serpent Slayer'] }
+};
+function t(k){ return T[LANG][k] ?? k; }
+function applyLang(){
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+  document.getElementById('btn-lang').textContent = LANG === 'ru' ? 'EN' : 'RU';
+}
+function localStorage_get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function localStorage_set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
-const $ = (id) => document.getElementById(id);
-function show(screenId){
-  ['screen-loading','screen-onboard','tab-hero','tab-sky','tab-camp'].forEach(s => $(s).classList.remove('visible'));
-  $(screenId).classList.add('visible');
-  $('bottom-nav').classList.toggle('hidden', screenId === 'screen-loading' || screenId === 'screen-onboard');
+// ---------- ЗВУК (WebAudio, без файлов) ----------
+let AC = null;
+function ac(){ if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); return AC; }
+function sClick(){ try{ const a=ac(), o=a.createOscillator(), g=a.createGain();
+  o.type='square'; o.frequency.value=660; g.gain.setValueAtTime(.08,a.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.07);
+  o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+.08);}catch(e){} }
+function sWind(){ try{ const a=ac(), len=a.sampleRate*1.2, buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=a.createBufferSource(); src.buffer=buf;
+  const f=a.createBiquadFilter(); f.type='bandpass'; f.frequency.setValueAtTime(300,a.currentTime);
+  f.frequency.exponentialRampToValueAtTime(1400,a.currentTime+1.1); f.Q.value=1.2;
+  const g=a.createGain(); g.gain.setValueAtTime(.25,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+1.2);
+  src.connect(f).connect(g).connect(a.destination); src.start(); }catch(e){} }
+function sChime(){ try{ const a=ac(); [523,659,784].forEach((fr,i)=>{ const o=a.createOscillator(),g=a.createGain();
+  o.type='square'; o.frequency.value=fr; const t0=a.currentTime+i*.09;
+  g.gain.setValueAtTime(.07,t0); g.gain.exponentialRampToValueAtTime(.001,t0+.15);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0+.16); }); }catch(e){} }
+function sFail(){ try{ const a=ac(), o=a.createOscillator(), g=a.createGain();
+  o.type='square'; o.frequency.setValueAtTime(220,a.currentTime); o.frequency.exponentialRampToValueAtTime(110,a.currentTime+.25);
+  g.gain.setValueAtTime(.1,a.currentTime); g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.3);
+  o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+.3); }catch(e){} }
+document.addEventListener('click', e => { if(e.target.closest('button,.mcard,.constcard')) sClick(); }, true);
+
+// ---------- ЭМОЦИИ (пиксельные лица 8×8 в SVG) ----------
+function emoteSVG(mood){ // happy | angry | neutral
+  const px=(x,y,c)=>`<rect x="${x}" y="${y}" width="1" height="1" fill="${c}"/>`;
+  let s='';
+  if(mood==='happy'){ const c='#4caf6e';
+    s+=px(1,2,c)+px(2,2,c)+px(5,2,c)+px(6,2,c);              // глаза
+    s+=px(1,5,c)+px(2,6,c)+px(3,6,c)+px(4,6,c)+px(5,6,c)+px(6,5,c); // улыбка
+  } else if(mood==='angry'){ const c='#c34141';
+    s+=px(1,1,c)+px(2,2,c)+px(5,2,c)+px(6,1,c);              // брови-глаза
+    s+=px(2,5,c)+px(3,5,c)+px(4,5,c)+px(5,5,c)+px(2,6,c)+px(5,6,c); // оскал
+  } else { const c='#9b8a6e';
+    s+=px(1,2,c)+px(2,2,c)+px(5,2,c)+px(6,2,c);
+    s+=px(2,5,c)+px(3,5,c)+px(4,5,c)+px(5,5,c);              // ровный рот
+  }
+  return s;
+}
+function setEmote(el, mood){ el.innerHTML = emoteSVG(mood); }
+
+// ---------- ПЕЧАТНАЯ МАШИНКА ----------
+async function typeText(el, portraitEl, text, mood){
+  const em = el.parentElement.querySelector('.emote') || document.getElementById(el.id.replace('text','emote'));
+  if(em) setEmote(em, mood);
+  portraitEl?.classList.add('talking');
+  el.textContent=''; el.classList.add('cursor');
+  const chars=[...text];
+  for(let i=0;i<chars.length;i++){
+    el.textContent += chars[i];
+    if(i%2===0) await new Promise(r=>setTimeout(r,18));
+  }
+  el.classList.remove('cursor');
+  portraitEl?.classList.remove('talking');
 }
 
-// ---------- Загрузка данных ----------
-let USER = null;
+// ---------- ОБЩЕЕ ----------
+const $=id=>document.getElementById(id);
+const XP_FOR=l=>Math.ceil(l*100*1.2);
+const RANK_MIN=[1,5,10,15,25,40,50];
+function rankFor(l){ let i=0; RANK_MIN.forEach((m,ix)=>{ if(l>=m) i=ix; }); return T[LANG].ranks[i]; }
+const MENTOR_IMG={ torsten:'./torsten.png', zarrais:'./zarrais.png', aelendil:'./aelendil.png' };
+const MENTOR_CLASS={ torsten:'war', zarrais:'thief', aelendil:'mage' };
+let USER=null, PICKED=null;
 
-async function loadUser(){
-  const { data } = await sb.from('users').select('*').eq('id', UID).maybeSingle();
-  USER = data;
-  return data;
+function show(id){
+  ['sc-load','sc-mentor','sc-bag','tab-hero','tab-sky','tab-camp'].forEach(s=>$(s).classList.add('hide'));
+  $(id).classList.remove('hide');
+  const inGame=['tab-hero','tab-sky','tab-camp'].includes(id);
+  $('nav').classList.toggle('hide',!inGame);
+  $('hud').classList.toggle('hide',!inGame);
 }
 
-async function renderHero(){
-  $('hero-name').textContent = USER.hero_name || TG_USER?.first_name || 'Странник';
+// ---------- ДАННЫЕ ----------
+async function loadUser(){ const {data}=await sb.from('users').select('*').eq('id',UID).maybeSingle(); USER=data; return data; }
+
+async function computeMeters(){
+  const day0=new Date(); day0.setHours(0,0,0,0);
+  const manaCap = (USER?.tier>=2)?30:10, stCap=(USER?.tier>=2)?6:3;
+  const {count:used}=await sb.from('xp_log').select('*',{count:'exact',head:true})
+    .eq('user_id',UID).eq('reason','quest').gte('created_at',day0.toISOString());
+  const {count:done}=await sb.from('user_quests').select('*',{count:'exact',head:true})
+    .eq('user_id',UID).eq('status','done').gte('completed_at',day0.toISOString());
+  // здоровье: −10 за каждый пропущенный день из последних 10
+  const since=new Date(Date.now()-10*86400000);
+  const {data:logs}=await sb.from('xp_log').select('created_at').eq('user_id',UID).gte('created_at',since.toISOString());
+  const daysWith=new Set((logs||[]).map(l=>new Date(l.created_at).toDateString()));
+  let missed=0;
+  for(let i=1;i<=10;i++){ const d=new Date(Date.now()-i*86400000);
+    if(d<new Date(USER?.created_at||0)) break;
+    if(!daysWith.has(d.toDateString())) missed++; }
+  const hp=Math.max(0,100-missed*10), mp=Math.max(0,manaCap-(used||0)), st=Math.max(0,stCap-(done||0));
+  $('v-hp').textContent=hp; $('f-hp').style.width=hp+'%';
+  $('v-mp').textContent=mp; $('f-mp').style.width=(mp/manaCap*100)+'%';
+  $('v-st').textContent=st; $('f-st').style.width=(st/stCap*100)+'%';
+  $('btn-log').disabled = mp<=0;
+  if(mp<=0) $('btn-log').textContent=t('mana_out');
+}
+
+function renderHero(){
+  $('hero-name').textContent = USER.hero_name || TG_USER?.first_name || '—';
   $('hero-rank').textContent = rankFor(USER.level);
-  $('hero-path').textContent = PATHS[USER.chosen_path] || '';
-  $('lvl-badge').textContent = 'УР. ' + USER.level;
-  $('xp-now').textContent = USER.xp;
-  $('xp-cap').textContent = XP_FOR(USER.level);
-  $('xp-bar').style.width = Math.min(100, USER.xp / XP_FOR(USER.level) * 100) + '%';
-  document.querySelectorAll('.mentor-card').forEach(c =>
-    c.classList.toggle('selected', c.dataset.mentor === USER.mentor));
+  $('hero-path').textContent = T[LANG].paths[USER.chosen_path] || '';
+  $('hero-portrait').src = MENTOR_IMG[USER.mentor] || './torsten.png';
+  $('xp-now').textContent=USER.xp; $('xp-cap').textContent=XP_FOR(USER.level);
+  $('xp-bar').style.width=Math.min(100,USER.xp/XP_FOR(USER.level)*100)+'%';
+  $('lvl-line').textContent = `${t('lvl')} ${USER.level} · ${XP_FOR(USER.level)-USER.xp} XP ${t('to_next')}`;
+}
+
+async function renderHistory(){
+  const {data}=await sb.from('xp_log').select('delta,reason,created_at').eq('user_id',UID)
+    .order('created_at',{ascending:false}).limit(12);
+  $('history').innerHTML=(data||[]).map(l=>{
+    const d=new Date(l.created_at).toLocaleDateString(LANG==='ru'?'ru-RU':'en-US',{day:'numeric',month:'short'});
+    const sign=l.delta>=0?'+':''; const col=l.delta>=0?'var(--st)':'var(--hp)';
+    return `<div class="scroll"><span class="meta">${d}</span> <span class="px" style="color:${col}">${sign}${l.delta} XP</span> <span class="small">· ${l.reason}</span></div>`;
+  }).join('')||`<p class="small" style="margin:0 8px">—</p>`;
+}
+
+async function renderAch(){
+  const [{data:all},{data:mine}]=await Promise.all([
+    sb.from('achievements').select('*'),
+    sb.from('user_achievements').select('code').eq('user_id',UID)
+  ]);
+  const got=new Set((mine||[]).map(m=>m.code));
+  $('ach-grid').innerHTML=(all||[]).map(a=>
+    `<div class="a ${got.has(a.code)?'':'lock'}"><div style="font-size:18px">${got.has(a.code)?'🏆':'🔒'}</div>${a.title}</div>`).join('');
 }
 
 async function renderSky(){
-  const { data: uq } = await sb.from('user_quests')
-    .select('status, quest_nodes(id, title, xp_reward, node_order, constellation_id, is_heavy_base, constellations(title))')
-    .eq('user_id', UID);
-  const rows = uq || [];
-  // группировка по созвездию
-  const byConst = {};
-  for (const r of rows) {
-    const c = r.quest_nodes.constellations.title;
-    (byConst[c] = byConst[c] || []).push(r);
-  }
-  const doneCount = rows.filter(r => r.status === 'done').length;
-  $('stars-count').textContent = `★ ${doneCount}`;
-
-  $('sky-list').innerHTML = Object.entries(byConst).map(([title, quests]) => {
-    quests.sort((a,b) => a.quest_nodes.node_order - b.quest_nodes.node_order);
-    const total = 3; // звёзд в ветке
-    const stars = Array.from({length: total}, (_, i) => {
-      const q = quests.find(x => x.quest_nodes.node_order === i + 1);
-      const cls = !q ? 'locked' : q.status === 'done' ? 'done' : 'active';
-      return `<div class="star ${cls}"></div>`;
-    }).join('<div class="flex-1 h-px bg-[var(--metal)]"></div>');
-    return `<div>
-      <p class="text-xs font-semibold text-[var(--iron)] mb-2">${title}</p>
-      <div class="flex items-center gap-1">${stars}</div>
-    </div>`;
-  }).join('') || '<p class="text-xs italic">Небо пусто. Пройди онбординг.</p>';
-
-  $('quest-list').innerHTML = rows.filter(r => r.status === 'active').map(r => `
-    <div class="card p-4 flex items-center gap-3">
-      <span class="text-xl">🌑</span>
-      <div class="flex-1">
-        <p class="text-sm font-semibold text-[var(--iron)]">${r.quest_nodes.title}</p>
-        <p class="text-xs text-[var(--gold)]">+${r.quest_nodes.is_heavy_base ? 100 : r.quest_nodes.xp_reward} XP</p>
+  const {data:uq}=await sb.from('user_quests')
+    .select('status,quest_nodes(id,title,xp_reward,node_order,is_heavy_base,constellations(title,mentor_affinity))')
+    .eq('user_id',UID);
+  const rows=uq||[]; const by={};
+  rows.forEach(r=>{ const c=r.quest_nodes.constellations.title; (by[c]=by[c]||[]).push(r); });
+  const cls = MENTOR_CLASS[USER?.mentor]||'war';
+  $('sky-list').innerHTML=Object.entries(by).map(([title,qs],ix)=>{
+    qs.sort((a,b)=>a.quest_nodes.node_order-b.quest_nodes.node_order);
+    const pts=[[14,36],[42,14],[72,30]];
+    const stars=[1,2,3].map((o,i)=>{
+      const q=qs.find(x=>x.quest_nodes.node_order===o);
+      const state=!q?'starp':(q.status==='done'?'lit':'starp');
+      const cur=q&&q.status==='active'?'lit':'';
+      return `<circle class="s${i+1} ${state} ${cur&&q.status==='active'?'':''} ${q?.status==='done'?'lit':(q?'':'starp')}" cx="${pts[i][0]}" cy="${pts[i][1]}" r="${q?.status==='done'?4:3}" fill="currentColor" ${!q?'opacity=".2"':(q.status==='active'?'opacity=".55"':'')}/>`;
+    }).join('');
+    const lines=`<line class="ln" x1="14" y1="36" x2="42" y2="14" stroke="currentColor" stroke-width="1.5" opacity=".5"/><line class="ln" x1="42" y1="14" x2="72" y2="30" stroke="currentColor" stroke-width="1.5" opacity=".5"/>`;
+    const doneN=qs.filter(q=>q.status==='done').length;
+    return `<div class="pnl constcard ${cls}" data-c="${ix}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="cname">${title}</span><span class="px small">★ ${doneN}/3</span>
       </div>
-    </div>`).join('') || '<p class="text-xs italic px-1">Все звёзды этой ночи зажжены. Жди новых.</p>';
+      <svg viewBox="0 0 86 48" style="width:100%;height:64px;color:inherit" class="csvg">${lines}${stars}</svg>
+    </div>`;
+  }).join('')||`<p class="small" style="margin:0 8px">—</p>`;
+
+  document.querySelectorAll('.constcard').forEach(card=>{
+    card.addEventListener('click',()=>{
+      sWind(); tg?.HapticFeedback?.impactOccurred('medium');
+      const svg=card.querySelector('.csvg'); svg.classList.remove('reveal'); void svg.offsetWidth; svg.classList.add('reveal');
+    });
+  });
+
+  $('quest-list').innerHTML=rows.filter(r=>r.status==='active').map(r=>`
+    <div class="pnl" style="display:flex;gap:10px;align-items:center">
+      <span class="chip ${cls}">+${r.quest_nodes.is_heavy_base?100:r.quest_nodes.xp_reward}</span>
+      <span>${r.quest_nodes.title}</span>
+    </div>`).join('')||`<p class="small" style="margin:0 8px">—</p>`;
 }
 
 async function renderFeed(){
-  const { data: logs } = await sb.from('xp_log')
-    .select('delta, raw_log, response_text, created_at')
-    .eq('user_id', UID).not('response_text','is',null)
-    .order('created_at', { ascending:false }).limit(10);
-  const feed = $('mentor-feed');
-  if (!logs?.length) return;
+  const {data:logs}=await sb.from('xp_log').select('delta,response_text,created_at')
+    .eq('user_id',UID).not('response_text','is',null)
+    .order('created_at',{ascending:false}).limit(10);
+  if(!logs?.length) return;
   $('feed-empty')?.remove();
-  feed.innerHTML = logs.map(l => `
-    <div class="scroll-card p-4">
-      <p class="text-xs text-[var(--gold-dim)] mb-1">${new Date(l.created_at).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${l.delta>=0?'+':''}${l.delta} XP</p>
-      <p class="text-sm text-[var(--iron)] leading-relaxed">${l.response_text}</p>
-    </div>`).join('');
+  $('feed').innerHTML=logs.map(l=>{
+    const mood=l.delta>0?'happy':(l.delta<0?'angry':'neutral');
+    const d=new Date(l.created_at).toLocaleString(LANG==='ru'?'ru-RU':'en-US',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div class="scroll"><div class="meta">${d} · ${l.delta>=0?'+':''}${l.delta} XP</div>
+      <svg style="width:18px;height:18px;float:right;image-rendering:pixelated" viewBox="0 0 8 8">${emoteSVG(mood)}</svg>
+      ${l.response_text}</div>`;
+  }).join('');
 }
 
-async function refreshAll(){
-  await loadUser();
-  await renderHero();
-  await renderSky();
-  await renderFeed();
-}
+async function refreshAll(){ await loadUser(); renderHero(); await Promise.all([computeMeters(),renderSky(),renderFeed(),renderHistory(),renderAch()]); }
 
-// ---------- Очередь: отправка и ожидание ответа ----------
-async function submitAndWait(kind, body){
-  const { data: jobId, error } = await sb.rpc('submit_log', { p_user_id: UID, p_kind: kind, p_body: body });
-  if (error) throw error;
-  // ждём обработки ботом (до 2 минут)
-  for (let i = 0; i < 40; i++) {
-    await new Promise(r => setTimeout(r, 3000));
-    const { data: job } = await sb.from('pending_logs').select('processed, response_text').eq('id', jobId).single();
-    if (job?.processed) return job.response_text;
+// ---------- ОЧЕРЕДЬ ----------
+async function submitAndWait(kind,body){
+  const {data:jobId,error}=await sb.rpc('submit_log',{p_user_id:UID,p_kind:kind,p_body:body});
+  if(error) throw error;
+  for(let i=0;i<40;i++){
+    await new Promise(r=>setTimeout(r,3000));
+    const {data:job}=await sb.from('pending_logs').select('processed,response_text').eq('id',jobId).single();
+    if(job?.processed) return job.response_text;
   }
-  return 'Наставник задумался надолго. Загляни в Свиток чуть позже.';
+  return LANG==='ru'?'Наставник задумался. Загляни в Свиток позже.':'The Mentor ponders. Check the Scroll later.';
 }
 
-// ---------- Онбординг ----------
-$('onboard-btn').addEventListener('click', async () => {
-  const text = $('onboard-input').value.trim();
-  if (!text) return tg?.HapticFeedback?.notificationOccurred('error');
-  $('onboard-btn').disabled = true;
-  $('onboard-wait').classList.remove('hidden');
-  try {
-    const reply = await submitAndWait('onboarding', text);
-    $('onboard-text').textContent = reply;
-    $('onboard-result').classList.remove('hidden');
-    $('onboard-wait').classList.add('hidden');
-    tg?.HapticFeedback?.notificationOccurred('success');
-  } catch (e) {
-    $('onboard-wait').classList.add('hidden');
-    $('onboard-btn').disabled = false;
-    alert('Ветра воют: ' + (e.message || e));
-  }
+// ---------- ОНБОРДИНГ ----------
+document.querySelectorAll('.mcard').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.mcard').forEach(x=>x.classList.remove('sel'));
+  c.classList.add('sel'); PICKED=c.dataset.m; $('btn-mentor-ok').disabled=false;
+  tg?.HapticFeedback?.selectionChanged();
+}));
+$('btn-mentor-ok').addEventListener('click',async()=>{
+  await sb.rpc('set_mentor',{p_user_id:UID,p_mentor:PICKED});
+  $('ob-portrait').src=MENTOR_IMG[PICKED];
+  show('sc-bag');
 });
-$('onboard-continue').addEventListener('click', async () => {
-  await refreshAll();
-  show('tab-hero');
+$('btn-bag').addEventListener('click',async()=>{
+  const text=$('bag-input').value.trim(); if(!text) return sFail();
+  $('btn-bag').disabled=true; $('bag-wait').classList.remove('hide');
+  try{
+    const reply=await submitAndWait('onboarding',text);
+    $('bag-wait').classList.add('hide'); $('bag-result').classList.remove('hide');
+    sChime();
+    await typeText($('ob-text'),$('ob-portrait'),reply,'neutral');
+    $('btn-enter').classList.remove('hide');
+  }catch(e){ sFail(); $('bag-wait').classList.add('hide'); $('btn-bag').disabled=false; alert(e.message||e); }
 });
+$('btn-enter').addEventListener('click',async()=>{ await refreshAll(); show('tab-hero'); });
 
-// ---------- Выбор наставника ----------
-document.querySelectorAll('.mentor-card').forEach(card => {
-  card.addEventListener('click', async () => {
-    const m = card.dataset.mentor;
-    await sb.rpc('set_mentor', { p_user_id: UID, p_mentor: m });
-    document.querySelectorAll('.mentor-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    const names = { torsten:'Торстен принял тебя. Готовься страдать.', aelendil:'Аэлендил снизошёл. Не разочаруйте его.', zarrais:'Кот берёт тебя в долю. Профит превыше всего.' };
-    $('mentor-hint').textContent = names[m];
-    tg?.HapticFeedback?.selectionChanged();
-  });
-});
-
-// ---------- Отправка лога ----------
-$('log-btn').addEventListener('click', async () => {
-  const text = $('log-input').value.trim();
-  if (!text) return tg?.HapticFeedback?.notificationOccurred('error');
-  $('log-btn').disabled = true;
-  $('log-wait').classList.remove('hidden');
-  try {
-    await submitAndWait('log', text);
-    $('log-input').value = '';
+// ---------- ПРИВАЛ ----------
+$('btn-log').addEventListener('click',async()=>{
+  const text=$('log-input').value.trim(); if(!text) return sFail();
+  $('btn-log').disabled=true; $('log-wait').classList.remove('hide');
+  try{
+    const reply=await submitAndWait('log',text);
+    $('log-wait').classList.add('hide');
+    $('live-reply').classList.remove('hide');
+    $('live-portrait').src=MENTOR_IMG[USER?.mentor]||'./torsten.png';
+    const m=reply.match(/([+-]\d+)\s*XP/); const delta=m?parseInt(m[1]):0;
+    const mood=delta>0?'happy':(reply.includes('−')||delta<0?'angry':'neutral');
+    if(delta>0) sChime(); else sFail();
+    await typeText($('live-text'),$('live-portrait'),reply,mood);
+    $('log-input').value='';
     await refreshAll();
-    tg?.HapticFeedback?.notificationOccurred('success');
-  } catch (e) {
-    alert('Ветра воют: ' + (e.message || e));
-  } finally {
-    $('log-btn').disabled = false;
-    $('log-wait').classList.add('hidden');
-  }
+  }catch(e){ sFail(); alert(e.message||e); }
+  finally{ $('btn-log').disabled=false; $('log-wait').classList.add('hide'); }
 });
 
-// ---------- Табы ----------
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    ['tab-hero','tab-sky','tab-camp'].forEach(s => $(s).classList.remove('visible'));
-    $(btn.dataset.tab).classList.add('visible');
-    tg?.HapticFeedback?.selectionChanged();
-  });
+// ---------- НАВИГАЦИЯ / ТУМБЛЕРЫ ----------
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); show(b.dataset.tab);
+}));
+$('btn-theme').addEventListener('click',()=>{
+  const cur=document.documentElement.dataset.theme;
+  const nxt=cur==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=nxt;
+  $('btn-theme').textContent=nxt==='dark'?'☀':'☾';
+  localStorage_set('vg_theme',nxt);
+});
+$('btn-lang').addEventListener('click',async()=>{
+  LANG=LANG==='ru'?'en':'ru'; localStorage_set('vg_lang',LANG);
+  applyLang(); if(USER){ renderHero(); await Promise.all([renderFeed(),renderHistory()]); }
 });
 
-// ---------- Старт ----------
+// ---------- СТАРТ ----------
 (async function init(){
-  if (!UID) {
-    $('screen-loading').innerHTML = '<p class="text-sm text-center py-16">Открой Хроники через Telegram, странник.<br><span class="text-xs opacity-60">(или добавь ?uid=твой_id к адресу для теста в браузере)</span></p>';
-    return;
-  }
-  try {
-    await sb.rpc('ensure_user', { p_id: UID, p_username: TG_USER?.username || null, p_name: TG_USER?.first_name || null });
+  const th=localStorage_get('vg_theme'); if(th){ document.documentElement.dataset.theme=th; $('btn-theme').textContent=th==='dark'?'☀':'☾'; }
+  applyLang();
+  if(!UID){ $('sc-load').innerHTML='<p class="small" style="text-align:center;padding:40px 20px">Открой Хроники через Telegram, странник.<br>(для теста в браузере добавь ?uid=твой_id)</p>'; return; }
+  try{
+    await sb.rpc('ensure_user',{p_id:UID,p_username:TG_USER?.username||null,p_name:TG_USER?.first_name||null});
     await loadUser();
-    if (!USER || !USER.chosen_path) {
-      show('screen-onboard');
-    } else {
-      await refreshAll();
-      show('tab-hero');
-    }
-  } catch (e) {
-    $('screen-loading').innerHTML = '<p class="text-sm text-center py-16 text-[var(--blood)]">Архивы Гильдии недоступны: ' + (e.message || e) + '</p>';
+    if(!USER||!USER.chosen_path){ show('sc-mentor'); }
+    else{ await refreshAll(); show('tab-hero'); }
+  }catch(e){
+    $('sc-load').innerHTML='<p class="small" style="text-align:center;padding:40px 20px;color:var(--hp)">Архивы недоступны: '+(e.message||e)+'</p>';
   }
 })();
 </script>
 </body>
 </html>
+
