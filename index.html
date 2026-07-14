@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Vanguard — Хроники Наёмника</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --obsidian:#0f172a; --gold:#d4af37; --gold-dim:#8a7223;
+    --blood:#991b1b; --ash:#94a3b8; --iron:#e8edf5; --metal:#3b4761;
+  }
+  *{ -webkit-tap-highlight-color:transparent; }
+  body{
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2745 0%, transparent 60%), var(--obsidian);
+    color:var(--ash); font-family:'Inter',sans-serif; min-height:100vh; overscroll-behavior:none;
+  }
+  .display{ font-family:'Cinzel',serif; }
+  .card{
+    background:linear-gradient(160deg, rgba(30,41,66,.72), rgba(15,23,42,.85));
+    border:1px solid var(--metal); border-radius:12px; backdrop-filter:blur(6px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 8px 24px rgba(0,0,0,.35);
+  }
+  .xp-track{ background:#0a0f1e; border:1px solid var(--metal); border-radius:6px; box-shadow:inset 0 2px 6px rgba(0,0,0,.7); }
+  .xp-fill{
+    background:linear-gradient(90deg, #7a621d, var(--gold) 60%, #f4e08a);
+    box-shadow:0 0 12px rgba(212,175,55,.55); transition:width .8s cubic-bezier(.22,1,.36,1);
+  }
+  .scroll-card{
+    background:linear-gradient(180deg,#171226,#120f1d);
+    border:1px solid #4a3b21; border-left:3px solid var(--gold-dim); border-radius:8px;
+  }
+  .tab-btn{ color:var(--ash); border-top:2px solid transparent; }
+  .tab-btn.active{ color:var(--gold); border-top-color:var(--gold); text-shadow:0 0 12px rgba(212,175,55,.5); }
+  .btn-forge{
+    background:linear-gradient(180deg,#b3922c,#8a7223); color:#0f172a; font-weight:700;
+    border:1px solid #e3c765; border-radius:8px;
+    box-shadow:0 0 16px rgba(212,175,55,.35), inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .btn-forge:disabled{ opacity:.5; }
+  .btn-forge:active{ transform:scale(.97); }
+  .mentor-card{ border:2px solid var(--metal); border-radius:12px; overflow:hidden; cursor:pointer; transition:border-color .2s, box-shadow .2s; }
+  .mentor-card.selected{ border-color:var(--gold); box-shadow:0 0 18px rgba(212,175,55,.4); }
+  .mentor-card img{ width:100%; height:110px; object-fit:cover; object-position:center 20%; display:block; }
+  .star{ width:16px; height:16px; border-radius:50%; }
+  .star.done{ background:#f4e08a; box-shadow:0 0 10px rgba(212,175,55,.9); }
+  .star.active{ background:#c9a53a; box-shadow:0 0 8px rgba(212,175,55,.6); animation:pulse 1.8s infinite; }
+  .star.locked{ background:#39445e; opacity:.5; }
+  @keyframes pulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+  input:focus, textarea:focus{ outline:none; border-color:var(--gold-dim); box-shadow:0 0 0 2px rgba(212,175,55,.18); }
+  section, #screen-onboard, #screen-loading{ display:none; }
+  .visible{ display:block !important; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+  .fade{ animation:fadein .25s ease; }
+  .spinner{ width:34px; height:34px; border:3px solid var(--metal); border-top-color:var(--gold); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto; }
+  @keyframes spin{ to{transform:rotate(360deg)} }
+</style>
+</head>
+<body class="pb-20">
+
+<header class="px-4 pt-5 pb-3 text-center">
+  <h1 class="display font-black text-xl tracking-[0.25em] text-[var(--iron)]">THE VANGUARD</h1>
+  <p class="text-[11px] tracking-[0.3em] uppercase text-[var(--gold-dim)] mt-1">Хроники Наёмника</p>
+</header>
+
+<main class="px-4 max-w-md mx-auto">
+
+  <!-- ЗАГРУЗКА -->
+  <div id="screen-loading" class="visible text-center py-16">
+    <div class="spinner"></div>
+    <p class="text-xs mt-4 tracking-wider uppercase">Открываем Архивы Гильдии…</p>
+  </div>
+
+  <!-- ОНБОРДИНГ -->
+  <div id="screen-onboard">
+    <div class="card p-5 fade">
+      <h2 class="display font-bold text-base text-[var(--iron)] tracking-wider mb-2">ЭЙ, ТЫ. НЕ СПИШЬ?</h2>
+      <p class="text-sm leading-relaxed mb-4">Повозка приехала. Расскажи Стражнику: что у тебя в котомке — гантели, турник, резина, зал или голые руки — и чего ты хочешь: стать больше, суше или просто выжить.</p>
+      <textarea id="onboard-input" rows="3" placeholder="Есть гантели и резинки, хочу подсушиться…"
+        class="w-full bg-[#0a0f1e] border border-[var(--metal)] rounded-lg p-3 text-sm text-[var(--iron)] placeholder-[#556] resize-none"></textarea>
+      <button id="onboard-btn" class="btn-forge w-full py-3 mt-3 text-sm tracking-wider uppercase">⚔️ Предстать перед Стражником</button>
+      <div id="onboard-wait" class="hidden text-center mt-4">
+        <div class="spinner"></div>
+        <p class="text-xs mt-3 italic text-[var(--gold-dim)]">Стражник изучает твои пожитки, Жрец читает небо… до минуты.</p>
+      </div>
+    </div>
+    <div id="onboard-result" class="scroll-card p-4 mt-4 hidden fade">
+      <p class="text-sm text-[var(--iron)] leading-relaxed" id="onboard-text"></p>
+      <button id="onboard-continue" class="btn-forge w-full py-3 mt-4 text-sm tracking-wider uppercase">Войти в Хроники →</button>
+    </div>
+  </div>
+
+  <!-- ===== ГЕРОЙ ===== -->
+  <section id="tab-hero" class="space-y-4">
+    <div class="card p-5">
+      <div class="flex items-center gap-4">
+        <div class="relative shrink-0">
+          <div class="w-20 h-20 rounded-full border-2 border-[var(--gold-dim)] bg-[#0a0f1e] flex items-center justify-center text-4xl">⚔️</div>
+          <div class="absolute -bottom-1 -right-1 bg-[var(--blood)] text-[var(--iron)] text-[10px] font-bold px-2 py-0.5 rounded border border-[#c33]" id="lvl-badge">УР. 1</div>
+        </div>
+        <div class="min-w-0">
+          <h2 class="display font-bold text-lg text-[var(--iron)] truncate" id="hero-name">Странник</h2>
+          <p class="text-sm text-[var(--gold)]" id="hero-rank">Болотный Краб</p>
+          <p class="text-xs mt-0.5" id="hero-path"></p>
+        </div>
+      </div>
+      <div class="mt-5">
+        <div class="flex justify-between text-xs mb-1.5">
+          <span class="uppercase tracking-wider">Опыт</span>
+          <span class="text-[var(--iron)] font-semibold"><span id="xp-now">0</span> / <span id="xp-cap">120</span> XP</span>
+        </div>
+        <div class="xp-track h-4 overflow-hidden"><div class="xp-fill h-full" id="xp-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <h3 class="display font-bold text-sm text-[var(--iron)] tracking-wider mb-3">ВЫБЕРИ НАСТАВНИКА</h3>
+      <div class="grid grid-cols-3 gap-2" id="mentor-grid">
+        <div class="mentor-card" data-mentor="torsten">
+          <img src="./torsten.png" alt="Торстен" onerror="this.outerHTML='<div class=&quot;h-[110px] flex items-center justify-center text-4xl bg-[#0a0f1e]&quot;>🪓</div>'">
+          <div class="p-2 text-center">
+            <p class="text-xs font-semibold text-[var(--iron)]">Торстен</p>
+            <p class="text-[10px]">Сила · база</p>
+          </div>
+        </div>
+        <div class="mentor-card" data-mentor="aelendil">
+          <img src="./aelendil.png" alt="Аэлендил" onerror="this.outerHTML='<div class=&quot;h-[110px] flex items-center justify-center text-4xl bg-[#0a0f1e]&quot;>🧝</div>'">
+          <div class="p-2 text-center">
+            <p class="text-xs font-semibold text-[var(--iron)]">Аэлендил</p>
+            <p class="text-[10px]">Техника · алхимия</p>
+          </div>
+        </div>
+        <div class="mentor-card" data-mentor="zarrais">
+          <img src="./zarrais.png" alt="Зар'Раис" onerror="this.outerHTML='<div class=&quot;h-[110px] flex items-center justify-center text-4xl bg-[#0a0f1e]&quot;>🐈</div>'">
+          <div class="p-2 text-center">
+            <p class="text-xs font-semibold text-[var(--iron)]">Зар'Раис</p>
+            <p class="text-[10px]">Бег · профит</p>
+          </div>
+        </div>
+      </div>
+      <p class="text-[11px] mt-2 italic text-[var(--gold-dim)]" id="mentor-hint">Наставник судит твои подвиги и пишет тебе в Свиток.</p>
+    </div>
+  </section>
+
+  <!-- ===== НЕБОСВОД ===== -->
+  <section id="tab-sky" class="space-y-4">
+    <div class="card p-4">
+      <div class="flex justify-between items-baseline mb-1">
+        <h3 class="display font-bold text-base text-[var(--iron)] tracking-wider">НЕБОСВОД</h3>
+        <span class="text-xs text-[var(--gold)]" id="stars-count">★ 0</span>
+      </div>
+      <p class="text-[11px] italic text-[var(--gold-dim)] mb-3">Тусклые звёзды скрыты туманом войны. Заверши квесты — и небо вспыхнет.</p>
+      <div id="sky-list" class="space-y-4"></div>
+    </div>
+    <h3 class="display font-bold text-sm text-[var(--iron)] tracking-wider px-1">АКТИВНЫЕ КВЕСТЫ</h3>
+    <div id="quest-list" class="space-y-3"></div>
+  </section>
+
+  <!-- ===== ПРИВАЛ ===== -->
+  <section id="tab-camp" class="space-y-4">
+    <div class="card p-4">
+      <h3 class="display font-bold text-base text-[var(--iron)] tracking-wider mb-1">ЗАПИСАТЬ ПОДВИГ</h3>
+      <p class="text-xs mb-3">Опиши битву или трапезу простыми словами — Наставник рассудит.</p>
+      <textarea id="log-input" rows="3" placeholder="Отжался 3 по 15, съел творог и гречку с курицей…"
+        class="w-full bg-[#0a0f1e] border border-[var(--metal)] rounded-lg p-3 text-sm text-[var(--iron)] placeholder-[#556] resize-none"></textarea>
+      <button id="log-btn" class="btn-forge w-full py-3 mt-3 text-sm tracking-wider uppercase">⚔️ Отправить в Архивы Гильдии</button>
+      <div id="log-wait" class="hidden text-center mt-4">
+        <div class="spinner"></div>
+        <p class="text-xs mt-3 italic text-[var(--gold-dim)]">Наставник вершит суд… до минуты.</p>
+      </div>
+    </div>
+    <h3 class="display font-bold text-sm text-[var(--iron)] tracking-wider px-1">СЛОВО НАСТАВНИКА</h3>
+    <div id="mentor-feed" class="space-y-3">
+      <p class="text-xs italic px-1" id="feed-empty">Свиток пока пуст. Соверши первый подвиг.</p>
+    </div>
+  </section>
+</main>
+
+<nav id="bottom-nav" class="fixed bottom-0 inset-x-0 bg-[#0a0f1ee6] backdrop-blur border-t border-[var(--metal)] hidden">
+  <div class="max-w-md mx-auto grid grid-cols-3">
+    <button class="tab-btn active py-3 text-xs uppercase tracking-wider" data-tab="tab-hero">🛡<br>Герой</button>
+    <button class="tab-btn py-3 text-xs uppercase tracking-wider" data-tab="tab-sky">✨<br>Небосвод</button>
+    <button class="tab-btn py-3 text-xs uppercase tracking-wider" data-tab="tab-camp">🔥<br>Привал</button>
+  </div>
+</nav>
+
+<script>
+// ============================================================
+// НАСТРОЙКИ — ВСТАВЬ СВОИ ДВА ЗНАЧЕНИЯ:
+// SUPABASE_URL — как в .env
+// SUPABASE_ANON_KEY — Supabase -> Settings -> API Keys -> anon / publishable
+// (НЕ service_role! anon — публичный ключ, его можно светить)
+// ============================================================
+const SUPABASE_URL = 'https://vbikkprigimjgixldouk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiaWtrcHJpZ2ltamdpeGxkb3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1NTQxNDcsImV4cCI6MjA5OTEzMDE0N30.k4bTJqffxWoGBXG23YaaJb7Xw8aKo0MSG8vRfnCVe4U';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const tg = window.Telegram?.WebApp;
+tg?.ready(); tg?.expand();
+tg?.setHeaderColor('#0f172a'); tg?.setBackgroundColor('#0f172a');
+
+// id юзера: из Telegram, либо ?uid=123 для теста в обычном браузере
+const TG_USER = tg?.initDataUnsafe?.user;
+const UID = TG_USER?.id || Number(new URLSearchParams(location.search).get('uid')) || null;
+
+const XP_FOR = (lvl) => Math.ceil(lvl * 100 * 1.2);
+const RANKS = [[1,'Болотный Краб'],[5,'Помойная Крыса'],[10,'Хлипкий Драугр'],[15,'Бандит с Тракта'],[25,'Наёмник'],[40,'Обсидиановый Воин'],[50,'Змееборец']];
+const rankFor = (lvl) => [...RANKS].reverse().find(([m]) => lvl >= m)[1];
+const PATHS = { path_of_bear:'🐻 Путь Медведя · Масса', path_of_wolf:'🐺 Путь Волка · Сушка', path_of_stag:'🦌 Путь Оленя · Тонус' };
+
+const $ = (id) => document.getElementById(id);
+function show(screenId){
+  ['screen-loading','screen-onboard','tab-hero','tab-sky','tab-camp'].forEach(s => $(s).classList.remove('visible'));
+  $(screenId).classList.add('visible');
+  $('bottom-nav').classList.toggle('hidden', screenId === 'screen-loading' || screenId === 'screen-onboard');
+}
+
+// ---------- Загрузка данных ----------
+let USER = null;
+
+async function loadUser(){
+  const { data } = await sb.from('users').select('*').eq('id', UID).maybeSingle();
+  USER = data;
+  return data;
+}
+
+async function renderHero(){
+  $('hero-name').textContent = USER.hero_name || TG_USER?.first_name || 'Странник';
+  $('hero-rank').textContent = rankFor(USER.level);
+  $('hero-path').textContent = PATHS[USER.chosen_path] || '';
+  $('lvl-badge').textContent = 'УР. ' + USER.level;
+  $('xp-now').textContent = USER.xp;
+  $('xp-cap').textContent = XP_FOR(USER.level);
+  $('xp-bar').style.width = Math.min(100, USER.xp / XP_FOR(USER.level) * 100) + '%';
+  document.querySelectorAll('.mentor-card').forEach(c =>
+    c.classList.toggle('selected', c.dataset.mentor === USER.mentor));
+}
+
+async function renderSky(){
+  const { data: uq } = await sb.from('user_quests')
+    .select('status, quest_nodes(id, title, xp_reward, node_order, constellation_id, is_heavy_base, constellations(title))')
+    .eq('user_id', UID);
+  const rows = uq || [];
+  // группировка по созвездию
+  const byConst = {};
+  for (const r of rows) {
+    const c = r.quest_nodes.constellations.title;
+    (byConst[c] = byConst[c] || []).push(r);
+  }
+  const doneCount = rows.filter(r => r.status === 'done').length;
+  $('stars-count').textContent = `★ ${doneCount}`;
+
+  $('sky-list').innerHTML = Object.entries(byConst).map(([title, quests]) => {
+    quests.sort((a,b) => a.quest_nodes.node_order - b.quest_nodes.node_order);
+    const total = 3; // звёзд в ветке
+    const stars = Array.from({length: total}, (_, i) => {
+      const q = quests.find(x => x.quest_nodes.node_order === i + 1);
+      const cls = !q ? 'locked' : q.status === 'done' ? 'done' : 'active';
+      return `<div class="star ${cls}"></div>`;
+    }).join('<div class="flex-1 h-px bg-[var(--metal)]"></div>');
+    return `<div>
+      <p class="text-xs font-semibold text-[var(--iron)] mb-2">${title}</p>
+      <div class="flex items-center gap-1">${stars}</div>
+    </div>`;
+  }).join('') || '<p class="text-xs italic">Небо пусто. Пройди онбординг.</p>';
+
+  $('quest-list').innerHTML = rows.filter(r => r.status === 'active').map(r => `
+    <div class="card p-4 flex items-center gap-3">
+      <span class="text-xl">🌑</span>
+      <div class="flex-1">
+        <p class="text-sm font-semibold text-[var(--iron)]">${r.quest_nodes.title}</p>
+        <p class="text-xs text-[var(--gold)]">+${r.quest_nodes.is_heavy_base ? 100 : r.quest_nodes.xp_reward} XP</p>
+      </div>
+    </div>`).join('') || '<p class="text-xs italic px-1">Все звёзды этой ночи зажжены. Жди новых.</p>';
+}
+
+async function renderFeed(){
+  const { data: logs } = await sb.from('xp_log')
+    .select('delta, raw_log, response_text, created_at')
+    .eq('user_id', UID).not('response_text','is',null)
+    .order('created_at', { ascending:false }).limit(10);
+  const feed = $('mentor-feed');
+  if (!logs?.length) return;
+  $('feed-empty')?.remove();
+  feed.innerHTML = logs.map(l => `
+    <div class="scroll-card p-4">
+      <p class="text-xs text-[var(--gold-dim)] mb-1">${new Date(l.created_at).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ${l.delta>=0?'+':''}${l.delta} XP</p>
+      <p class="text-sm text-[var(--iron)] leading-relaxed">${l.response_text}</p>
+    </div>`).join('');
+}
+
+async function refreshAll(){
+  await loadUser();
+  await renderHero();
+  await renderSky();
+  await renderFeed();
+}
+
+// ---------- Очередь: отправка и ожидание ответа ----------
+async function submitAndWait(kind, body){
+  const { data: jobId, error } = await sb.rpc('submit_log', { p_user_id: UID, p_kind: kind, p_body: body });
+  if (error) throw error;
+  // ждём обработки ботом (до 2 минут)
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    const { data: job } = await sb.from('pending_logs').select('processed, response_text').eq('id', jobId).single();
+    if (job?.processed) return job.response_text;
+  }
+  return 'Наставник задумался надолго. Загляни в Свиток чуть позже.';
+}
+
+// ---------- Онбординг ----------
+$('onboard-btn').addEventListener('click', async () => {
+  const text = $('onboard-input').value.trim();
+  if (!text) return tg?.HapticFeedback?.notificationOccurred('error');
+  $('onboard-btn').disabled = true;
+  $('onboard-wait').classList.remove('hidden');
+  try {
+    const reply = await submitAndWait('onboarding', text);
+    $('onboard-text').textContent = reply;
+    $('onboard-result').classList.remove('hidden');
+    $('onboard-wait').classList.add('hidden');
+    tg?.HapticFeedback?.notificationOccurred('success');
+  } catch (e) {
+    $('onboard-wait').classList.add('hidden');
+    $('onboard-btn').disabled = false;
+    alert('Ветра воют: ' + (e.message || e));
+  }
+});
+$('onboard-continue').addEventListener('click', async () => {
+  await refreshAll();
+  show('tab-hero');
+});
+
+// ---------- Выбор наставника ----------
+document.querySelectorAll('.mentor-card').forEach(card => {
+  card.addEventListener('click', async () => {
+    const m = card.dataset.mentor;
+    await sb.rpc('set_mentor', { p_user_id: UID, p_mentor: m });
+    document.querySelectorAll('.mentor-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    const names = { torsten:'Торстен принял тебя. Готовься страдать.', aelendil:'Аэлендил снизошёл. Не разочаруйте его.', zarrais:'Кот берёт тебя в долю. Профит превыше всего.' };
+    $('mentor-hint').textContent = names[m];
+    tg?.HapticFeedback?.selectionChanged();
+  });
+});
+
+// ---------- Отправка лога ----------
+$('log-btn').addEventListener('click', async () => {
+  const text = $('log-input').value.trim();
+  if (!text) return tg?.HapticFeedback?.notificationOccurred('error');
+  $('log-btn').disabled = true;
+  $('log-wait').classList.remove('hidden');
+  try {
+    await submitAndWait('log', text);
+    $('log-input').value = '';
+    await refreshAll();
+    tg?.HapticFeedback?.notificationOccurred('success');
+  } catch (e) {
+    alert('Ветра воют: ' + (e.message || e));
+  } finally {
+    $('log-btn').disabled = false;
+    $('log-wait').classList.add('hidden');
+  }
+});
+
+// ---------- Табы ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['tab-hero','tab-sky','tab-camp'].forEach(s => $(s).classList.remove('visible'));
+    $(btn.dataset.tab).classList.add('visible');
+    tg?.HapticFeedback?.selectionChanged();
+  });
+});
+
+// ---------- Старт ----------
+(async function init(){
+  if (!UID) {
+    $('screen-loading').innerHTML = '<p class="text-sm text-center py-16">Открой Хроники через Telegram, странник.<br><span class="text-xs opacity-60">(или добавь ?uid=твой_id к адресу для теста в браузере)</span></p>';
+    return;
+  }
+  try {
+    await sb.rpc('ensure_user', { p_id: UID, p_username: TG_USER?.username || null, p_name: TG_USER?.first_name || null });
+    await loadUser();
+    if (!USER || !USER.chosen_path) {
+      show('screen-onboard');
+    } else {
+      await refreshAll();
+      show('tab-hero');
+    }
+  } catch (e) {
+    $('screen-loading').innerHTML = '<p class="text-sm text-center py-16 text-[var(--blood)]">Архивы Гильдии недоступны: ' + (e.message || e) + '</p>';
+  }
+})();
+</script>
+</body>
+</html>
